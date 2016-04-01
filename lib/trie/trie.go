@@ -1,6 +1,7 @@
 package trie
 
 import (
+	"encoding/gob"
 	"fmt"
 	"io"
 	"sync"
@@ -15,6 +16,18 @@ type Trie struct {
 
 type NodeInfo struct {
 	ref int
+}
+
+type FileNode struct {
+	Prefix string
+	Ref    int
+}
+
+func CreateTrie() *Trie {
+	return &Trie{
+		root:  trie.NewTrie(trie.MaxPrefixPerNode(128)),
+		mutex: &sync.Mutex{},
+	}
 }
 
 func (tr *Trie) Insert(key string) error {
@@ -33,7 +46,23 @@ func (tr *Trie) Insert(key string) error {
 	return fmt.Errorf("Failed to insert %s", key)
 }
 
-func (tr *Trie) Delete(key string) (string, error) {
+func (tr *Trie) Update(key string, ref int) error {
+	tr.mutex.Lock()
+	defer tr.mutex.Unlock()
+
+	if item := tr.root.Get(trie.Prefix(key)); item != nil {
+		node := tr.getNode(item)
+		node.ref = ref
+		return nil
+	}
+
+	if ret := tr.root.Insert(trie.Prefix(key), &NodeInfo{ref: ref}); ret {
+		return nil
+	}
+	return fmt.Errorf("Failed to update %s with ref %d", key, ref)
+}
+
+func (tr *Trie) Delete(key string) (bool, error) {
 	tr.mutex.Lock()
 	defer tr.mutex.Unlock()
 
@@ -41,18 +70,44 @@ func (tr *Trie) Delete(key string) (string, error) {
 		node := tr.getNode(item)
 		if node.ref--; node.ref <= 0 {
 			if d := tr.root.Delete(trie.Prefix(key)); d {
-				return key, nil
+				return true, nil
 			}
-			return "", fmt.Errorf("Failed to delete %s", key)
+			return false, fmt.Errorf("Failed to delete %s", key)
 		}
 	}
-	return "", nil
+	return false, nil
 }
 
-func (tr *Trie) Dump(writer io.Writer) error {
-	/*vistor := func(prefix trie.Prefix, item trie.Item) error {
-	}()
-	return nil*/
+func (tr *Trie) Save(writer io.Writer) error {
+	tr.mutex.Lock()
+	defer tr.mutex.Unlock()
+	vistor := func(prefix trie.Prefix, item trie.Item) error {
+		node := tr.getNode(item)
+		fileNode := FileNode{
+			Prefix: string(prefix),
+			Ref:    node.ref,
+		}
+		enc := gob.NewEncoder(writer)
+		if err := enc.Encode(fileNode); err != nil {
+			return fmt.Errorf("Failed to encode prefix %s with ref %d, err: %v", prefix, node.ref, err)
+		}
+		return nil
+	}
+	return tr.root.Visit(vistor)
+}
+
+func (tr *Trie) Load(reader io.Reader) error {
+	tr.mutex.Lock()
+	tr.mutex.Unlock()
+	decoder := gob.NewDecoder(reader)
+	var fileNode FileNode
+	for err := decoder.Decode(&fileNode); err != io.EOF; {
+		if ret := tr.root.Insert(trie.Prefix(fileNode.Prefix), &NodeInfo{ref: fileNode.Ref}); !ret {
+			return fmt.Errorf("Failed to insert prefix %s with ref %d", fileNode.Prefix, fileNode.Ref)
+		}
+	}
+
+	return nil
 }
 
 func (tr *Trie) getNode(item trie.Item) *NodeInfo {
