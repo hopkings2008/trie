@@ -3,6 +3,7 @@ package infodb
 import (
 	log "github.com/Sirupsen/logrus"
 	"trie/lib/storage/driver"
+	_ "trie/lib/storage/driver/filesystem"
 	"trie/lib/trie"
 )
 

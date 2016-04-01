@@ -5,7 +5,7 @@ import (
 	"io"
 )
 
-var driverFactory map[string]StorageDriverFactory
+var driverFactory map[string]StorageDriverFactory = make(map[string]StorageDriverFactory)
 
 type StorageDriverFactory interface {
 	Create(parameters map[string]interface{}) (StorageDriver, error)

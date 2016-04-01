@@ -81,13 +81,13 @@ func (tr *Trie) Delete(key string) (bool, error) {
 func (tr *Trie) Save(writer io.Writer) error {
 	tr.mutex.Lock()
 	defer tr.mutex.Unlock()
+	enc := gob.NewEncoder(writer)
 	vistor := func(prefix trie.Prefix, item trie.Item) error {
 		node := tr.getNode(item)
 		fileNode := FileNode{
 			Prefix: string(prefix),
 			Ref:    node.ref,
 		}
-		enc := gob.NewEncoder(writer)
 		if err := enc.Encode(fileNode); err != nil {
 			return fmt.Errorf("Failed to encode prefix %s with ref %d, err: %v", prefix, node.ref, err)
 		}
@@ -101,10 +101,15 @@ func (tr *Trie) Load(reader io.Reader) error {
 	tr.mutex.Unlock()
 	decoder := gob.NewDecoder(reader)
 	var fileNode FileNode
-	for err := decoder.Decode(&fileNode); err != io.EOF; {
-		if ret := tr.root.Insert(trie.Prefix(fileNode.Prefix), &NodeInfo{ref: fileNode.Ref}); !ret {
-			return fmt.Errorf("Failed to insert prefix %s with ref %d", fileNode.Prefix, fileNode.Ref)
+	for {
+		err := decoder.Decode(&fileNode)
+		if err == io.EOF {
+			break
 		}
+		if err != nil {
+			return fmt.Errorf("Failed to decode %v, err: %v", reader, err)
+		}
+		tr.root.Set(trie.Prefix(fileNode.Prefix), &NodeInfo{ref: fileNode.Ref})
 	}
 
 	return nil
