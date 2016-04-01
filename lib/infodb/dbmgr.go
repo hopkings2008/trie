@@ -67,8 +67,8 @@ func (dbm *InfoDbMgr) getDb(prefix string) (*InfoDb, error) {
 	if db, ok := dbm.Dbs[id]; ok {
 		return db, nil
 	}
-	log.Errorf("Cannot find db for %s", prefix)
-	return nil, fmt.Errorf("Cannot find db for %s", prefix)
+	log.Errorf("Cannot find db for prefix %s, id %s", prefix, id)
+	return nil, fmt.Errorf("Cannot find db for %s, id %s", prefix, id)
 }
 
 func (dbm *InfoDbMgr) getPrefix(prefix string, bound int) string {
@@ -85,7 +85,7 @@ func (dbm *InfoDbMgr) getPrefix(prefix string, bound int) string {
 
 func CreateInfoDbMgr(root, file string) (*InfoDbMgr, error) {
 	var err error
-	set := "0123456789abcdef"
+	set := "0123456789ABCDEF"
 	dbm := &InfoDbMgr{
 		Dbs:  make(map[string]*InfoDb),
 		Root: root,
