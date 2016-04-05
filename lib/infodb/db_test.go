@@ -126,25 +126,34 @@ func (dbs *InfoDbSuites) TestSaveLoadMany(c *check.C) {
 }
 
 func (dbs *InfoDbSuites) addDeleteMem(c *check.C, db *InfoDb, num int) {
-	prefixes := make([]string, num)
+	prefixes := make(map[string]int)
 
 	for i := 0; i < num; i++ {
-		prefixes[i] = dbs.rand.String()
-		err := db.Add(prefixes[i])
+		prefix := dbs.rand.String()
+		count, ok := prefixes[prefix]
+		if !ok {
+			prefixes[prefix] = 1
+		} else {
+			prefixes[prefix] = count + 1
+		}
+		err := db.Add(prefix)
 		c.Assert(err, check.IsNil)
 	}
 
-	for i := 0; i < num; i++ {
-		err := db.Delete(prefixes[i])
-		c.Assert(err, check.IsNil)
+	for prefix, count := range prefixes {
+		for i := 0; i < count; i++ {
+			err := db.Delete(prefix)
+			c.Assert(err, check.IsNil)
+		}
 	}
 
 	trash := db.GetTrash()
 	c.Assert(trash, check.NotNil)
-	c.Assert(len(trash), check.Equals, num)
-	for i := 0; i < num; i++ {
-		c.Assert(prefixes[i] == trash[i], check.Equals, true)
+	c.Assert(len(trash), check.Equals, len(prefixes))
+	for _, prefix := range trash {
+		delete(prefixes, prefix)
 	}
+	c.Assert(len(prefixes), check.Equals, 0)
 }
 
 func (dbs *InfoDbSuites) TestInfoDbAddDeleteMem(c *check.C) {
@@ -152,17 +161,19 @@ func (dbs *InfoDbSuites) TestInfoDbAddDeleteMem(c *check.C) {
 
 	root, err := ioutil.TempDir(".", "sha256")
 	c.Assert(err, check.IsNil)
+	defer os.RemoveAll(root)
 	db, err := CreateInfoDb(root, "dbbench")
 	c.Assert(err, check.IsNil)
 	c.Assert(db, check.NotNil)
 	dbs.addDeleteMem(c, db, num)
 }
 func (dbs *InfoDbSuites) BenchmarkInfoDbAddDeleteMem(c *check.C) {
-	num := 200000
+	num := 2000000
 
 	for i := 0; i < c.N; i++ {
 		root, err := ioutil.TempDir(".", "sha256")
 		c.Assert(err, check.IsNil)
+		defer os.RemoveAll(root)
 		db, err := CreateInfoDb(root, "dbbench")
 		c.Assert(err, check.IsNil)
 		c.Assert(db, check.NotNil)

@@ -55,6 +55,26 @@ func (ts *TrieSuites) TestInsertDelete(c *check.C) {
 	c.Assert(d, check.Equals, true)
 }
 
+func (ts *TrieSuites) insertDeleteMany(c *check.C, trie *Trie, num int) {
+	prefixes := make([]string, num)
+	for i := 0; i < num; i++ {
+		prefixes[i] = ts.rand.String()
+		err := trie.Insert(prefixes[i])
+		c.Assert(err, check.IsNil)
+	}
+
+	for i := 0; i < num; i++ {
+		_, err := trie.Delete(prefixes[i])
+		c.Assert(err, check.IsNil)
+	}
+
+	for i := 0; i < num; i++ {
+		ref, err := trie.GetRef(prefixes[i])
+		c.Assert(err, check.NotNil)
+		c.Assert(ref, check.Equals, -1)
+	}
+}
+
 func (ts *TrieSuites) TestSaveLoad(c *check.C) {
 	dir, err := ioutil.TempDir(".", "sha256")
 	c.Assert(err, check.IsNil)
@@ -88,5 +108,13 @@ func (ts *TrieSuites) TestSaveLoad(c *check.C) {
 		d, err := ts.trie.Delete(prefix)
 		c.Assert(err, check.IsNil)
 		c.Assert(d, check.Equals, true)
+	}
+}
+
+func (ts *TrieSuites) BenchmarkInsertDeleteMany(c *check.C) {
+	num := 2000000
+	for i := 0; i < c.N; i++ {
+		trie := CreateTrie()
+		ts.insertDeleteMany(c, trie, num)
 	}
 }
