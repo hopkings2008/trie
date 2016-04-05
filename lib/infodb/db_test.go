@@ -124,3 +124,48 @@ func (dbs *InfoDbSuites) TestSaveLoadMany(c *check.C) {
 		c.Assert(prefixes[i] == trash[i], check.Equals, true)
 	}
 }
+
+func (dbs *InfoDbSuites) addDeleteMem(c *check.C, db *InfoDb, num int) {
+	prefixes := make([]string, num)
+
+	for i := 0; i < num; i++ {
+		prefixes[i] = dbs.rand.String()
+		err := db.Add(prefixes[i])
+		c.Assert(err, check.IsNil)
+	}
+
+	for i := 0; i < num; i++ {
+		err := db.Delete(prefixes[i])
+		c.Assert(err, check.IsNil)
+	}
+
+	trash := db.GetTrash()
+	c.Assert(trash, check.NotNil)
+	c.Assert(len(trash), check.Equals, num)
+	for i := 0; i < num; i++ {
+		c.Assert(prefixes[i] == trash[i], check.Equals, true)
+	}
+}
+
+func (dbs *InfoDbSuites) TestInfoDbAddDeleteMem(c *check.C) {
+	num := 200000
+
+	root, err := ioutil.TempDir(".", "sha256")
+	c.Assert(err, check.IsNil)
+	db, err := CreateInfoDb(root, "dbbench")
+	c.Assert(err, check.IsNil)
+	c.Assert(db, check.NotNil)
+	dbs.addDeleteMem(c, db, num)
+}
+func (dbs *InfoDbSuites) BenchmarkInfoDbAddDeleteMem(c *check.C) {
+	num := 200000
+
+	for i := 0; i < c.N; i++ {
+		root, err := ioutil.TempDir(".", "sha256")
+		c.Assert(err, check.IsNil)
+		db, err := CreateInfoDb(root, "dbbench")
+		c.Assert(err, check.IsNil)
+		c.Assert(db, check.NotNil)
+		dbs.addDeleteMem(c, db, num)
+	}
+}

@@ -37,6 +37,7 @@ func (tr *Trie) Insert(key string) error {
 	if item != nil {
 		node := tr.getNode(item)
 		node.ref++
+		//fmt.Printf("Got prefix %s, update ref to %d\n", key, node.ref)
 		return nil
 	}
 	if ret := tr.root.Insert(trie.Prefix(key), &NodeInfo{ref: 1}); ret {
@@ -68,7 +69,8 @@ func (tr *Trie) Delete(key string) (bool, error) {
 
 	if item := tr.root.Get(trie.Prefix(key)); item != nil {
 		node := tr.getNode(item)
-		if node.ref--; node.ref <= 0 {
+		node.ref--
+		if node.ref <= 0 {
 			if d := tr.root.Delete(trie.Prefix(key)); d {
 				return true, nil
 			}

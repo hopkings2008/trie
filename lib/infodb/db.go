@@ -19,18 +19,17 @@ func (db *InfoDb) Add(prefix string) error {
 }
 
 func (db *InfoDb) Delete(prefix string) error {
-	var deleted bool
+	var deleted bool = false
 	var err error
-	if deleted, err = db.MemDb.Delete(prefix); err != nil {
-		log.Errorf("Failed to delete %s, err: %v", prefix, err)
-		return err
+	if deleted, err = db.MemDb.Delete(prefix); err == nil {
+		if deleted {
+			db.Trash = append(db.Trash, prefix)
+		}
+		return nil
 	}
 
-	if deleted {
-		db.Trash = append(db.Trash, prefix)
-	}
-
-	return nil
+	log.Errorf("Failed to delete %s, err: %v", prefix, err)
+	return err
 }
 
 func (db *InfoDb) GetTrash() []string {

@@ -99,9 +99,10 @@ func (dbms *InfoDbMgrSuites) TestSaveLoadOne(c *check.C) {
 	c.Assert(dbms.dbm.GetTrash()[0] == prefix, check.Equals, true)
 }
 
-func (dbms *InfoDbMgrSuites) TestSaveLoadMany(c *check.C) {
-	prefixes := make([]string, 4096)
-	for i := 0; i < 4096; i++ {
+func (dbms *InfoDbMgrSuites) TestDbMgrSaveLoadMany(c *check.C) {
+	num := 2000000
+	prefixes := make([]string, num)
+	for i := 0; i < num; i++ {
 		prefixes[i] = dbms.rand.String()
 		err := dbms.dbm.Add(prefixes[i])
 		c.Assert(err, check.IsNil)
@@ -113,14 +114,43 @@ func (dbms *InfoDbMgrSuites) TestSaveLoadMany(c *check.C) {
 	c.Assert(err, check.IsNil)
 	err = dbms.dbm.Load()
 	c.Assert(err, check.IsNil)
-	for i := 0; i < 4096; i++ {
+	for i := 0; i < num; i++ {
 		err := dbms.dbm.Delete(prefixes[i])
 		c.Assert(err, check.IsNil)
 	}
 	trash := dbms.dbm.GetTrash()
 	c.Assert(trash, check.NotNil)
-	c.Assert(len(trash), check.Equals, 4096)
+	c.Assert(len(trash), check.Equals, num)
 	/*for i := 0; i < 2048; i++ {
 		c.Assert(prefixes[i] == trash[i], check.Equals, true)
 	}*/
+}
+
+func (dbms *InfoDbMgrSuites) BenchmarkSaveLoadMany(c *check.C) {
+	for i := 0; i < c.N; i++ {
+		dbms.TestDbMgrSaveLoadMany(c)
+	}
+}
+
+func (dbms *InfoDbMgrSuites) addDeleteMem(c *check.C) {
+	num := 2000000
+	prefixes := make([]string, num)
+	for i := 0; i < num; i++ {
+		prefixes[i] = dbms.rand.String()
+		err := dbms.dbm.Add(prefixes[i])
+		c.Assert(err, check.IsNil)
+	}
+	for i := 0; i < num; i++ {
+		err := dbms.dbm.Delete(prefixes[i])
+		c.Assert(err, check.IsNil)
+	}
+	trash := dbms.dbm.GetTrash()
+	c.Assert(trash, check.NotNil)
+	c.Assert(len(trash), check.Equals, num)
+}
+
+func (dbms *InfoDbMgrSuites) BenchmarkAddDelete(c *check.C) {
+	for i := 0; i < c.N; i++ {
+		dbms.addDeleteMem(c)
+	}
 }
