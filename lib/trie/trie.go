@@ -24,6 +24,11 @@ type FileNode struct {
 	Ref    int
 }
 
+type Selector interface {
+	Check(prefix string, node *NodeInfo) bool
+	Get(prefix string, node *NodeInfo) error
+}
+
 func CreateTrie() *Trie {
 	return &Trie{
 		root:  trie.NewPathTrie(),
@@ -89,6 +94,22 @@ func (tr *Trie) Delete(key string) (bool, error) {
 		}
 	}
 	return false, nil
+}
+
+func (tr *Trie) Select(selector Selector) error {
+	tr.mutex.Lock()
+	defer tr.mutex.Unlock()
+	vistor := func(prefix string, item interface{}) error {
+		node := tr.getNode(item)
+		if selector.Check(prefix, node) {
+			if err := selector.Get(prefix, node); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	return tr.root.Walk(vistor)
 }
 
 func (tr *Trie) Save(writer io.Writer) error {

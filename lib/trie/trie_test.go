@@ -111,6 +111,47 @@ func (ts *TrieSuites) TestSaveLoad(c *check.C) {
 	}
 }
 
+type testSelector struct {
+	ref   int
+	trash []string
+}
+
+func (tsl *testSelector) Check(prefix string, node *NodeInfo) bool {
+	return node.ref == node.ref
+}
+
+func (tsl *testSelector) Get(prefix string, node *NodeInfo) error {
+	tsl.trash = append(tsl.trash, prefix)
+	return nil
+}
+
+func (ts *TrieSuites) TestZeroSelector(c *check.C) {
+	tsl := &testSelector{ref: 0}
+	num := 2000000
+	prefixes := make(map[string]int)
+
+	for count := 0; count < num; {
+		var ok bool
+		prefix := ts.rand.String()
+		if _, ok = prefixes[prefix]; ok {
+			continue
+		}
+		count++
+		prefixes[prefix] = count
+		err := ts.trie.Update(prefix, 0)
+		c.Assert(err, check.IsNil)
+	}
+
+	err := ts.trie.Select(tsl)
+	c.Assert(err, check.IsNil)
+	c.Assert(len(tsl.trash), check.Equals, num)
+	for _, prefix := range tsl.trash {
+		delete(prefixes, prefix)
+	}
+
+	c.Assert(len(prefixes), check.Equals, 0)
+}
+
 func (ts *TrieSuites) BenchmarkInsertDeleteMany(c *check.C) {
 	num := 2000000
 	for i := 0; i < c.N; i++ {

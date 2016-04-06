@@ -3,6 +3,7 @@ package infodb
 import (
 	"io/ioutil"
 	"os"
+	"time"
 	//"testing"
 
 	"gopkg.in/check.v1"
@@ -14,9 +15,10 @@ import (
 var _ = check.Suite(&InfoDbMgrSuites{})
 
 type InfoDbMgrSuites struct {
-	dbm  *InfoDbMgr
-	root string
-	rand *util.RandString
+	dbm      *InfoDbMgr
+	root     string
+	rand     *util.RandString
+	prefixes map[string]int
 }
 
 func (dbms *InfoDbMgrSuites) SetUpSuite(c *check.C) {
@@ -24,6 +26,7 @@ func (dbms *InfoDbMgrSuites) SetUpSuite(c *check.C) {
 		Sets: "0123456789ABCDEF",
 		Len:  64,
 	}
+	dbms.prefixes = dbms.getRandStrings(5000000, false)
 }
 
 func (dbms *InfoDbMgrSuites) TearDownSuite(c *check.C) {
@@ -134,32 +137,34 @@ func (dbms *InfoDbMgrSuites) TestDbMgrSaveLoadMany(c *check.C) {
 }
 
 func (dbms *InfoDbMgrSuites) BenchmarkDbMgrSaveLoadMany(c *check.C) {
-	num := 2000000
+	prefixes := dbms.prefixes
 	for i := 0; i < c.N; i++ {
+		start := time.Now().UnixNano()
 		root, err := ioutil.TempDir(".", "dbmgr")
 		c.Assert(err, check.IsNil)
-		//defer os.RemoveAll(root)
+		defer os.RemoveAll(root)
 		dbm, err := CreateInfoDbMgr(root, "db")
 		c.Assert(err, check.IsNil)
 		c.Assert(dbm, check.NotNil)
-		prefixes := make(map[string]int)
-		for i := 0; i < num; i++ {
-			prefix := dbms.rand.String()
-			count, ok := prefixes[prefix]
-			if !ok {
-				prefixes[prefix] = 1
-			} else {
-				prefixes[prefix] = count + 1
+		for prefix, count := range prefixes {
+			for j := 0; j < count; j++ {
+				err := dbm.Add(prefix)
+				c.Assert(err, check.IsNil)
 			}
-			err := dbm.Add(prefix)
-			c.Assert(err, check.IsNil)
 		}
+		saveStart := time.Now().UnixNano()
+		c.Logf("total add time: %d", saveStart-start)
 		err = dbm.Save()
+		saveEnd := time.Now().UnixNano()
+		c.Logf("total save time: %d", saveEnd-saveStart)
 		c.Assert(err, check.IsNil)
 		dbm = nil
 		dbm, err = CreateInfoDbMgr(root, "db")
 		c.Assert(err, check.IsNil)
+		loadStart := time.Now().UnixNano()
 		err = dbm.Load()
+		loadEnd := time.Now().UnixNano()
+		c.Logf("total load time: %d", loadEnd-loadStart)
 		c.Assert(err, check.IsNil)
 		for prefix, count := range prefixes {
 			for i := 0; i < count; i++ {
@@ -167,6 +172,8 @@ func (dbms *InfoDbMgrSuites) BenchmarkDbMgrSaveLoadMany(c *check.C) {
 				c.Assert(err, check.IsNil)
 			}
 		}
+		deleteEnd := time.Now().UnixNano()
+		c.Logf("total delete time: %d", deleteEnd-loadEnd)
 		trash := dbm.GetTrash()
 		c.Assert(trash, check.NotNil)
 		c.Assert(len(trash), check.Equals, len(prefixes))
@@ -175,7 +182,8 @@ func (dbms *InfoDbMgrSuites) BenchmarkDbMgrSaveLoadMany(c *check.C) {
 		}
 
 		c.Assert(len(prefixes), check.Equals, 0)
-
+		end := time.Now().UnixNano()
+		c.Logf("running time: %d", end-start)
 	}
 }
 
@@ -219,4 +227,23 @@ func (dbms *InfoDbMgrSuites) BenchmarkDbMgrAddDelete(c *check.C) {
 		c.Assert(dbm, check.NotNil)
 		dbms.addDeleteMem(c, dbm, num)
 	}
+}
+
+func (dbms *InfoDbMgrSuites) getRandStrings(num int, diff bool) map[string]int {
+	strings := make(map[string]int)
+	for i := 0; i < num; {
+		str := dbms.rand.String()
+		count, ok := strings[str]
+		if !ok {
+			strings[str] = 1
+			i++
+			continue
+		}
+		if !diff {
+			i++
+			strings[str] = count + 1
+		}
+	}
+
+	return strings
 }
