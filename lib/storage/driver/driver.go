@@ -20,6 +20,7 @@ type StorageWriter interface {
 type StorageDriver interface {
 	Writer(file string, append bool) (StorageWriter, error)
 	Reader(file string, pos int64) (io.ReadCloser, error)
+	Remove(file string) error
 	Name() string
 }
 

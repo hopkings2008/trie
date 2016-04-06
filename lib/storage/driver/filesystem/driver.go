@@ -79,6 +79,10 @@ func (fs *FileSystem) Writer(subpath string, append bool) (driver.StorageWriter,
 	return fs.newFileWriter(fp, offset), nil
 }
 
+func (fs *FileSystem) Remove(file string) error {
+	return os.RemoveAll(file)
+}
+
 func (fs *FileSystem) fullpath(subpath string) string {
 	return path.Join(fs.root, subpath)
 }
