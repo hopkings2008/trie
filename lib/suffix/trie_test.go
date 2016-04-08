@@ -13,6 +13,7 @@ var _ = check.Suite(&TrieSuites{})
 
 type TrieSuites struct {
 	rand     *util.RandString
+	rand32   *util.RandString
 	prefixes map[string]int
 }
 
@@ -22,7 +23,12 @@ func (ts *TrieSuites) SetUpSuite(c *check.C) {
 		Sets: "0123456789ABCDEF",
 		Len:  64,
 	}
-	ts.prefixes = ts.getStrings(500000, true)
+	ts.rand32 = &util.RandString{
+		Sets: "0123456789ABCDEF",
+		Len:  32,
+	}
+	//ts.prefixes = ts.getStrings(500000, true)
+	ts.prefixes = ts.getHalfSameStrings(500000)
 }
 
 func (ts *TrieSuites) TearDownSuite(c *check.C) {
@@ -55,30 +61,29 @@ func (ts *TrieSuites) TestInsertDelete(c *check.C) {
 }
 
 func (ts *TrieSuites) BenchmarkInsertDeleteMany(c *check.C) {
-	trie := NewTrie()
+	//trie := NewTrie()
 	for i := 0; i < c.N; i++ {
-		//trie := NewTrie()
-		ts.insertDeleteMany(c, trie)
+		trie := NewTrie()
+		ts.insertDeleteMany(c, trie, ts.prefixes)
 	}
 }
 
 func (ts *TrieSuites) BenchmarkMapInsertDeleteMany(c *check.C) {
 	for i := 0; i < c.N; i++ {
 		m := make(map[string]int)
-		ts.mapInsertDeleteMany(c, m)
+		ts.mapInsertDeleteMany(c, m, ts.prefixes)
 	}
 }
 
-func (ts *TrieSuites) insertDeleteMany(c *check.C, trie *Trie) {
-	prefixes := ts.prefixes
+func (ts *TrieSuites) insertDeleteMany(c *check.C, trie *Trie, prefixes map[string]int) {
 	for k, _ := range prefixes {
-		trie.Put(k, 1)
-		//c.Assert(ret, check.Equals, true)
+		ret := trie.Put(k, 1)
+		c.Assert(ret, check.Equals, true)
 	}
 
 	for k, _ := range prefixes {
-		trie.Delete(k)
-		//c.Assert(ret, check.Equals, true)
+		ret := trie.Delete(k)
+		c.Assert(ret, check.Equals, true)
 	}
 
 	for k, _ := range prefixes {
@@ -87,8 +92,7 @@ func (ts *TrieSuites) insertDeleteMany(c *check.C, trie *Trie) {
 	}
 }
 
-func (ts *TrieSuites) mapInsertDeleteMany(c *check.C, m map[string]int) {
-	prefixes := ts.prefixes
+func (ts *TrieSuites) mapInsertDeleteMany(c *check.C, m map[string]int, prefixes map[string]int) {
 	for k, v := range prefixes {
 		m[k] = v
 	}
@@ -112,6 +116,22 @@ func (ts *TrieSuites) getStrings(num int, diff bool) map[string]int {
 				i++
 				prefixes[str] = count
 			}
+			continue
+		}
+		i++
+		prefixes[str] = 1
+	}
+
+	return prefixes
+}
+
+func (ts *TrieSuites) getHalfSameStrings(num int) map[string]int {
+	prefixes := make(map[string]int)
+	prefix := "0123456789ABCEDF0123456789ABCEDF"
+	for i := 0; i < num; {
+		str := prefix + ts.rand32.String()
+		_, ok := prefixes[str]
+		if ok {
 			continue
 		}
 		i++

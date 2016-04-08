@@ -12,8 +12,8 @@ type Trie struct {
 	parent   *Trie
 	children []*Trie
 	value    interface{}
-	childIdx uint8
-	childNum uint8
+	childIdx uint16
+	childNum uint16
 }
 
 func (t *Trie) Get(key string) interface{} {
@@ -38,7 +38,7 @@ func (t *Trie) Put(key string, value interface{}) bool {
 		if child == nil {
 			child = NewTrie()
 			child.parent = node
-			child.childIdx = pos
+			child.childIdx = uint16(pos)
 			node.children[pos] = child
 			node.childNum++
 		}
@@ -96,12 +96,6 @@ func (t *Trie) walk(key string, walker WalkFunc) error {
 
 func (t *Trie) isLeaf() bool {
 	return t.childNum == 0
-	/*for i := 0; i < num_children; i++ {
-		if t.children[i] != nil {
-			return false
-		}
-	}
-	return true*/
 }
 
 func NewTrie() *Trie {
@@ -109,7 +103,8 @@ func NewTrie() *Trie {
 		parent:   nil,
 		children: make([]*Trie, num_children),
 		value:    nil,
-		childIdx: uint8(0),
+		childIdx: uint16(0),
+		childNum: uint16(0),
 	}
 }
 
