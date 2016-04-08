@@ -1,6 +1,7 @@
 package suffix
 
 import (
+	//"runtime"
 	"testing"
 
 	"gopkg.in/check.v1"
@@ -15,6 +16,7 @@ type TrieSuites struct {
 	rand     *util.RandString
 	rand32   *util.RandString
 	prefixes map[string]int
+	tmap     map[string]int
 }
 
 func (ts *TrieSuites) SetUpSuite(c *check.C) {
@@ -29,6 +31,7 @@ func (ts *TrieSuites) SetUpSuite(c *check.C) {
 	}
 	//ts.prefixes = ts.getStrings(500000, true)
 	ts.prefixes = ts.getHalfSameStrings(500000)
+	ts.tmap = make(map[string]int)
 }
 
 func (ts *TrieSuites) TearDownSuite(c *check.C) {
@@ -81,14 +84,16 @@ func (ts *TrieSuites) insertDeleteMany(c *check.C, trie *Trie, prefixes map[stri
 		c.Assert(ret, check.Equals, true)
 	}
 
-	for k, _ := range prefixes {
+	//runtime.GC()
+
+	/*for k, _ := range prefixes {
 		ret := trie.Delete(k)
 		c.Assert(ret, check.Equals, true)
-	}
+	}*/
 
 	for k, _ := range prefixes {
 		ref := trie.Get(k)
-		c.Assert(ref, check.IsNil)
+		c.Assert(ref, check.NotNil)
 	}
 }
 
@@ -96,12 +101,12 @@ func (ts *TrieSuites) mapInsertDeleteMany(c *check.C, m map[string]int, prefixes
 	for k, v := range prefixes {
 		m[k] = v
 	}
-	for k, _ := range prefixes {
+	/*for k, _ := range prefixes {
 		delete(m, k)
-	}
+	}*/
 	for k, _ := range prefixes {
 		_, ok := m[k]
-		c.Assert(ok, check.Equals, false)
+		c.Assert(ok, check.Equals, true)
 	}
 }
 

@@ -3,7 +3,6 @@ package suffix
 var (
 	sets         = "0123456789ABCDEF"
 	num_children = 16
-	idx          map[byte]uint8
 )
 
 type WalkFunc func(key string, value interface{}) error
@@ -20,7 +19,7 @@ func (t *Trie) Get(key string) interface{} {
 	node := t
 	lkey := len(key)
 	for i := 0; i < lkey; i++ {
-		node = node.children[idx[key[i]]]
+		node = node.children[getIdx(key[i])]
 		if node == nil {
 			return nil
 		}
@@ -33,7 +32,7 @@ func (t *Trie) Put(key string, value interface{}) bool {
 	node := t
 	lkey := len(key)
 	for i := 0; i < lkey; i++ {
-		pos, _ := idx[key[i]]
+		pos := getIdx(key[i])
 		child := node.children[pos]
 		if child == nil {
 			child = NewTrie()
@@ -54,7 +53,7 @@ func (t *Trie) Delete(key string) bool {
 	node := t
 	lkey := len(key)
 	for i := 0; i < lkey; i++ {
-		node = node.children[idx[key[i]]]
+		node = node.children[getIdx(key[i])]
 		if node == nil {
 			return false
 		}
@@ -86,8 +85,10 @@ func (t *Trie) walk(key string, walker WalkFunc) error {
 		walker(key, t.value)
 	}
 	for i, child := range t.children {
-		err := child.walk(key+string(sets[i]), walker)
-		if err != nil {
+		if child == nil {
+			continue
+		}
+		if err := child.walk(key+string(sets[i]), walker); err != nil {
 			return err
 		}
 	}
@@ -96,6 +97,45 @@ func (t *Trie) walk(key string, walker WalkFunc) error {
 
 func (t *Trie) isLeaf() bool {
 	return t.childNum == 0
+}
+
+func getIdx(b byte) uint8 {
+	switch b {
+	case 48:
+		return 0
+	case 49:
+		return 1
+	case 50:
+		return 2
+	case 51:
+		return 3
+	case 52:
+		return 4
+	case 53:
+		return 5
+	case 54:
+		return 6
+	case 55:
+		return 7
+	case 56:
+		return 8
+	case 57:
+		return 9
+	case 65:
+		return 10
+	case 66:
+		return 11
+	case 67:
+		return 12
+	case 68:
+		return 13
+	case 69:
+		return 14
+	case 70:
+		return 15
+	default:
+		return 16
+	}
 }
 
 func NewTrie() *Trie {
@@ -109,9 +149,9 @@ func NewTrie() *Trie {
 }
 
 func InitSets() {
-	bs := []byte(sets)
+	/*bs := []byte(sets)
 	idx = make(map[byte]uint8)
 	for i, b := range bs {
 		idx[b] = uint8(i)
-	}
+	}*/
 }
