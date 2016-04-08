@@ -26,7 +26,7 @@ func (dbms *InfoDbMgrSuites) SetUpSuite(c *check.C) {
 		Sets: "0123456789ABCDEF",
 		Len:  64,
 	}
-	dbms.prefixes = dbms.getRandStrings(5000000, false)
+	dbms.prefixes = dbms.getRandStrings(500000, false)
 }
 
 func (dbms *InfoDbMgrSuites) TearDownSuite(c *check.C) {
@@ -100,7 +100,7 @@ func (dbms *InfoDbMgrSuites) TestSaveLoadOne(c *check.C) {
 }
 
 func (dbms *InfoDbMgrSuites) TestDbMgrSaveLoadMany(c *check.C) {
-	num := 2000000
+	num := 200000
 	prefixes := make(map[string]int)
 	for i := 0; i < num; i++ {
 		prefix := dbms.rand.String()
@@ -158,6 +158,7 @@ func (dbms *InfoDbMgrSuites) BenchmarkDbMgrSaveLoadMany(c *check.C) {
 		saveEnd := time.Now().UnixNano()
 		c.Logf("total save time: %d", saveEnd-saveStart)
 		c.Assert(err, check.IsNil)
+		FreeInfoDbMgr(dbm)
 		dbm = nil
 		dbm, err = CreateInfoDbMgr(root, "db")
 		c.Assert(err, check.IsNil)

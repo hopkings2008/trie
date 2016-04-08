@@ -148,6 +148,19 @@ func NewTrie() *Trie {
 	}
 }
 
+func FreeTrie(t *Trie) {
+	for i := 0; i < num_children; i++ {
+		if t.children[i] == nil {
+			continue
+		}
+		FreeTrie(t.children[i])
+		t.children[i].parent = nil
+		t.children[i].children = nil
+		t.children[i].value = nil
+		t.children[i] = nil
+	}
+}
+
 func InitSets() {
 	/*bs := []byte(sets)
 	idx = make(map[byte]uint8)

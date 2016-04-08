@@ -3,6 +3,7 @@ package infodb
 import (
 	"fmt"
 	"path"
+	"runtime"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -81,6 +82,16 @@ func (dbm *InfoDbMgr) getPrefix(prefix string, bound int) string {
 	}
 
 	return id
+}
+
+func FreeInfoDbMgr(mgr *InfoDbMgr) {
+	for k, db := range mgr.Dbs {
+		FreeInfoDb(db)
+		db = nil
+		delete(mgr.Dbs, k)
+	}
+
+	runtime.GC()
 }
 
 func CreateInfoDbMgr(root, file string) (*InfoDbMgr, error) {

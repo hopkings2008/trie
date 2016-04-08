@@ -66,6 +66,13 @@ func (db *InfoDb) Load() error {
 	return nil
 }
 
+func FreeInfoDb(db *InfoDb) {
+	db.MemDb.Cleanup()
+	db.MemDb = nil
+	db.Driver = nil
+	db.Trash = nil
+}
+
 func CreateInfoDb(root, file string) (*InfoDb, error) {
 	opts := make(map[string]interface{})
 	opts["root"] = root

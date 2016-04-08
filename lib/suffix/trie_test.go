@@ -108,6 +108,42 @@ func (ts *TrieSuites) TestWalkBasic(c *check.C) {
 	c.Assert(len(walker.m), check.Equals, 0)
 }
 
+func (ts *TrieSuites) TestFreeBasic(c *check.C) {
+	walker := &testWalk{
+		m: make(map[string]interface{}),
+	}
+	trie := NewTrie()
+	ilen := 10
+	prefixes := make(map[string]interface{})
+	for i := 0; i < ilen; i++ {
+		prefixes[ts.rand.String()] = i
+	}
+
+	for k, v := range prefixes {
+		ret := trie.Put(k, v)
+		c.Assert(ret, check.Equals, true)
+	}
+
+	err := trie.Walk(walker.walk)
+	c.Assert(err, check.IsNil)
+
+	for k, v := range prefixes {
+		node := trie.Get(k)
+		c.Assert(node, check.Equals, v)
+	}
+
+	for k, _ := range walker.m {
+		delete(walker.m, k)
+	}
+	c.Assert(len(walker.m), check.Equals, 0)
+
+	FreeTrie(trie)
+
+	err = trie.Walk(walker.walk)
+	c.Assert(err, check.IsNil)
+	c.Assert(len(walker.m), check.Equals, 0)
+}
+
 func (ts *TrieSuites) TestOpNum(c *check.C) {
 	u := uint16(0xff00)
 	for i := 0; i < 10; i++ {

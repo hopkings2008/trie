@@ -131,7 +131,7 @@ func (tr *Trie) Save(writer io.Writer) error {
 
 func (tr *Trie) Load(reader io.Reader) error {
 	tr.mutex.Lock()
-	tr.mutex.Unlock()
+	defer tr.mutex.Unlock()
 	decoder := gob.NewDecoder(reader)
 	var fileNode FileNode
 	for {
@@ -146,6 +146,13 @@ func (tr *Trie) Load(reader io.Reader) error {
 	}
 
 	return nil
+}
+
+func (tr *Trie) Cleanup() {
+	tr.mutex.Lock()
+	defer tr.mutex.Unlock()
+	trie.FreeTrie(tr.root)
+	tr.root = nil
 }
 
 func (tr *Trie) getNode(item interface{}) *NodeInfo {
