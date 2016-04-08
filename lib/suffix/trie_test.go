@@ -108,6 +108,27 @@ func (ts *TrieSuites) TestWalkBasic(c *check.C) {
 	c.Assert(len(walker.m), check.Equals, 0)
 }
 
+func (ts *TrieSuites) TestOpNum(c *check.C) {
+	u := uint16(0xff00)
+	for i := 0; i < 10; i++ {
+		u = incNum(u)
+		d := getNum(u)
+		c.Assert(d, check.Equals, uint8(i+1))
+	}
+
+	for i := 10; i > 0; i-- {
+		u = decNum(u)
+		d := getNum(u)
+		c.Assert(d, check.Equals, uint8(i-1))
+	}
+
+	for i := 0; i < 10; i++ {
+		u = setNo(u, uint8(i+1))
+		d := getNo(u)
+		c.Assert(d, check.Equals, uint8(i+1))
+	}
+}
+
 func (ts *TrieSuites) BenchmarkInsertDeleteMany(c *check.C) {
 	//trie := NewTrie()
 	for i := 0; i < c.N; i++ {
@@ -189,4 +210,34 @@ func (ts *TrieSuites) getHalfSameStrings(num int) map[string]int {
 	}
 
 	return prefixes
+}
+
+func incNum(u uint16) uint16 {
+	t := uint8(u & 0x00ff)
+	t++
+	u &= 0xff00
+	u ^= (0x00ff & uint16(t))
+	return u
+}
+
+func decNum(u uint16) uint16 {
+	t := uint8(u & 0x00ff)
+	t--
+	u &= 0xff00
+	u ^= (0x00ff & uint16(t))
+	return u
+}
+
+func getNum(u uint16) uint8 {
+	return uint8(u & 0x00ff)
+}
+
+func setNo(u uint16, d uint8) uint16 {
+	u &= 0x00ff
+	u ^= ((uint16(d) << 8) & 0xff00)
+	return u
+}
+
+func getNo(u uint16) uint8 {
+	return uint8((u >> 8) & 0x00ff)
 }
