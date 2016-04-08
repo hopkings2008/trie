@@ -63,6 +63,51 @@ func (ts *TrieSuites) TestInsertDelete(c *check.C) {
 	c.Assert(ret, check.Equals, false)
 }
 
+type testWalk struct {
+	m map[string]interface{}
+}
+
+func (tw *testWalk) walk(key string, value interface{}) error {
+	tw.m[key] = value
+	return nil
+}
+
+func (ts *TrieSuites) TestWalkBasic(c *check.C) {
+	walker := &testWalk{
+		m: make(map[string]interface{}),
+	}
+	trie := NewTrie()
+	ilen := 10
+	prefixes := make(map[string]interface{})
+	for i := 0; i < ilen; i++ {
+		prefixes[ts.rand.String()] = i
+	}
+
+	for k, v := range prefixes {
+		ret := trie.Put(k, v)
+		c.Assert(ret, check.Equals, true)
+	}
+
+	err := trie.Walk(walker.walk)
+	c.Assert(err, check.IsNil)
+
+	for k, v := range prefixes {
+		node := trie.Get(k)
+		c.Assert(node, check.Equals, v)
+		ret := trie.Delete(k)
+		c.Assert(ret, check.Equals, true)
+	}
+
+	for k, _ := range walker.m {
+		delete(walker.m, k)
+	}
+	c.Assert(len(walker.m), check.Equals, 0)
+
+	err = trie.Walk(walker.walk)
+	c.Assert(err, check.IsNil)
+	c.Assert(len(walker.m), check.Equals, 0)
+}
+
 func (ts *TrieSuites) BenchmarkInsertDeleteMany(c *check.C) {
 	//trie := NewTrie()
 	for i := 0; i < c.N; i++ {

@@ -15,8 +15,9 @@ func Test(t *testing.T) { check.TestingT(t) }
 var _ = check.Suite(&TrieSuites{})
 
 type TrieSuites struct {
-	trie *Trie
-	rand *util.RandString
+	trie     *Trie
+	rand     *util.RandString
+	prefixes map[string]int
 }
 
 func (ts *TrieSuites) SetUpSuite(c *check.C) {
@@ -24,6 +25,7 @@ func (ts *TrieSuites) SetUpSuite(c *check.C) {
 		Sets: "0123456789ABCDEF",
 		Len:  64,
 	}
+	ts.prefixes = ts.getStrings(500000, true)
 }
 
 func (ts *TrieSuites) TearDownSuite(c *check.C) {
@@ -55,24 +57,37 @@ func (ts *TrieSuites) TestInsertDelete(c *check.C) {
 	c.Assert(d, check.Equals, true)
 }
 
-func (ts *TrieSuites) insertDeleteMany(c *check.C, trie *Trie, num int) {
-	prefixes := make([]string, num)
-	for i := 0; i < num; i++ {
-		prefixes[i] = ts.rand.String()
-		err := trie.Insert(prefixes[i])
+func (ts *TrieSuites) insertDeleteMany(c *check.C, trie *Trie) {
+	prefixes := ts.prefixes
+	for k, _ := range prefixes {
+		err := trie.Insert(k)
 		c.Assert(err, check.IsNil)
 	}
 
-	for i := 0; i < num; i++ {
-		_, err := trie.Delete(prefixes[i])
+	for k, _ := range prefixes {
+		_, err := trie.Delete(k)
 		c.Assert(err, check.IsNil)
 	}
 
-	for i := 0; i < num; i++ {
-		ref, err := trie.GetRef(prefixes[i])
+	for k, _ := range prefixes {
+		ref, err := trie.GetRef(k)
 		c.Assert(err, check.NotNil)
 		c.Assert(ref, check.Equals, -1)
 	}
+}
+
+func (ts *TrieSuites) mapInsertDeleteMany(c *check.C, m map[string]int) {
+	prefixes := ts.prefixes
+	for k, v := range prefixes {
+		m[k] = v
+	}
+	/*for k, _ := range prefixes {
+		delete(m, k)
+	}
+	for k, _ := range prefixes {
+		_, ok := m[k]
+		c.Assert(ok, check.Equals, false)
+	}*/
 }
 
 func (ts *TrieSuites) TestSaveLoad(c *check.C) {
@@ -127,7 +142,7 @@ func (tsl *testSelector) Get(prefix string, node *NodeInfo) error {
 
 func (ts *TrieSuites) TestZeroSelector(c *check.C) {
 	tsl := &testSelector{ref: 0}
-	num := 2000000
+	num := 200000
 	prefixes := make(map[string]int)
 
 	for count := 0; count < num; {
@@ -153,9 +168,35 @@ func (ts *TrieSuites) TestZeroSelector(c *check.C) {
 }
 
 func (ts *TrieSuites) BenchmarkInsertDeleteMany(c *check.C) {
-	num := 2000000
 	for i := 0; i < c.N; i++ {
 		trie := CreateTrie()
-		ts.insertDeleteMany(c, trie, num)
+		ts.insertDeleteMany(c, trie)
 	}
+}
+
+func (ts *TrieSuites) BenchmarkMapInsertDeleteMany(c *check.C) {
+	for i := 0; i < c.N; i++ {
+		m := make(map[string]int)
+		ts.mapInsertDeleteMany(c, m)
+	}
+}
+
+func (ts *TrieSuites) getStrings(num int, diff bool) map[string]int {
+	prefixes := make(map[string]int)
+	for i := 0; i < num; {
+		str := ts.rand.String()
+		count, ok := prefixes[str]
+		if ok {
+			if !diff {
+				count++
+				i++
+				prefixes[str] = count
+			}
+			continue
+		}
+		i++
+		prefixes[str] = 1
+	}
+
+	return prefixes
 }

@@ -6,12 +6,11 @@ import (
 	"io"
 	"sync"
 
-	//trie "github.com/tchap/go-patricia/patricia"
-	trie "github.com/dghubble/trie"
+	trie "trie/lib/suffix"
 )
 
 type Trie struct {
-	root  *trie.PathTrie
+	root  *trie.Trie
 	mutex *sync.Mutex
 }
 
@@ -31,7 +30,7 @@ type Selector interface {
 
 func CreateTrie() *Trie {
 	return &Trie{
-		root:  trie.NewPathTrie(),
+		root:  trie.NewTrie(),
 		mutex: &sync.Mutex{},
 	}
 }
